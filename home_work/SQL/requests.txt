@@ -1,0 +1,94 @@
+CREATE TABLE customers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+);
+
+
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    customer_id INTEGER NOT NULL,
+    order_date DATE NOT NULL,
+    CONSTRAINT fk_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL,
+    product_name VARCHAR(255) NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+    CONSTRAINT fk_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders(id)
+        ON DELETE CASCADE
+);
+
+SELECT id, order_date FROM  customers
+JOIN orders ON customers.id = orders.customer_id
+WHERE customers.name = 'Иван Иванов';
+
+
+SELECT order_items.product_name, order_items.quantity, order_items.price
+FROM order_items
+JOIN orders ON orders.id = order_items.order_id
+WHERE orders.id = 3
+ORDER BY price DESC
+
+
+SELECT customers.name, SUM(order_items.quantity * order_items.price) AS total_spent
+FROM customers
+JOIN orders ON customers.id = orders.customer_id
+JOIN order_items ON orders.id = order_items.order_id
+GROUP BY  customers.name
+HAVING SUM(order_items.quantity * order_items.price) > 5000;
+
+
+# Создание индексов
+
+CREATE INDEX idx_orders_customer_id ON orders (customer_id);
+
+CREATE INDEX idx_order_items_order_id_price ON order_items (order_id, price);
+
+CREATE INDEX idx_order_items_product_name ON order_items (product_name);
+
+
+EXPLAIN ANALYZE
+SELECT *
+FROM order_items
+WHERE order_id = 123 AND price > 10000;
+
+EXPLAIN ANALYZE
+SELECT *
+FROM orders
+WHERE customer_id = 1;
+
+
+DO $$
+DECLARE
+  new_order_id INT;
+BEGIN
+  BEGIN
+
+    INSERT INTO orders (customer_id, order_date)
+    VALUES (1, CURRENT_DATE)
+    RETURNING id INTO new_order_id;
+
+    INSERT INTO order_items (order_id, product_name, quantity, price)
+    VALUES
+      (new_order_id, 'Клавиатура', 1, 3000.00),
+      (new_order_id, 'Монитор', 1, 15000.00),
+      (new_order_id, NULL, 2, 500.00);
+
+    COMMIT;
+  EXCEPTION
+    WHEN OTHERS THEN
+      ROLLBACK;
+      RAISE NOTICE 'Ошибка: %', SQLERRM;
+  END;
+END $$;
+
+
