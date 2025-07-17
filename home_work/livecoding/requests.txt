@@ -1,0 +1,53 @@
+# task1
+
+SELECT Selespersor.id AS salesperson_id, COALESCE(SUM(Orders.price), 0) AS total_income
+FROM Salespersons
+LEFT JOIN Customers ON Salespersons.id = Customers.salesperson_id
+LEFT JOIN Orders ON Customers.id = Orders.customer_id
+GROUP BY Salespersons.id
+ORDER BY Salespersons.id;
+
+# task 14
+SELECT DISTINCT user.id, purchase.id
+FROM user
+INNER JOIN purchase ON user.id = purchase.user_id
+ORDER BY user.firstname, purchase.sku;
+
+
+# task 15
+
+SELECT user.id, user.firstname, user.lastname, SUM(order.total_amount) AS total_purchase_amount
+FROM user
+JOIN order ON user.id = order.user_id
+GROUP BY user.id
+HAVING SUM(order.total_amount) > 5000
+ORDER BY total_purchase_amount DECS;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
